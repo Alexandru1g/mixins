@@ -1,46 +1,61 @@
 import 'package:flutter/material.dart';
 import 'dart:developer' as devtools show log;
+import 'dart:io';
+import "package:meta/meta.dart";
+import 'dart:convert';
 
 extension Log on Object {
   void log() => devtools.log(toString());
 }
 
-abstract class Animal {
-  const Animal();
+extension GetOnUri on Object {
+  Future<HttpClientResponse> getUrl(String url) => HttpClient()
+      .getUrl(
+        Uri.parse(url),
+      )
+      .then(
+        (req) => req.close(),
+      );
 }
 
-mixin CanRun on Animal {
-  int get speed;
-  void run() {
-    "Running at the speed of $speed".log();
-  }
+mixin CanMakeGetCall {
+  String get url;
+  @useResult
+  Future<String> getString() => getUrl(
+        url,
+      ).then(
+        (resp) => resp
+            .transform(
+              utf8.decoder,
+            )
+            .join(),
+      );
 }
 
-class Cat extends Animal with CanRun {
+@immutable
+class GetPeople with CanMakeGetCall {
+  const GetPeople();
   @override
-  int speed = 10;
+  String get url => "http://127.0.0.1:5500/apis/people.json";
 }
 
-class Dog with CanRun {
-  @override
-  // TODO: implement speed
-  int get speed => throw UnimplementedError();
-}
-
-void testIt() {
-  final cat = Cat();
-  cat.run();
-  cat.speed = 20;
-  cat.run();
+void testIt() async {
+  final people = await const GetPeople().getString();
+  people.log();
 }
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
 
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
